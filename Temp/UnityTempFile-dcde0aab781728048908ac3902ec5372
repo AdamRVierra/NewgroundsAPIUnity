@@ -2,28 +2,23 @@
 -target:library
 -nowarn:0169
 -out:Temp/Assembly-CSharp.dll
--r:"C:/Program Files (x86)/UnityWiiU/Editor/Data/Managed/UnityEngine.dll"
--r:"C:/Program Files (x86)/UnityWiiU/Editor/Data/UnityExtensions/Unity/GUISystem/4.6.0/UnityEngine.UI.dll"
--r:"C:/Program Files (x86)/UnityWiiU/Editor/Data/Managed/UnityEditor.dll"
--define:UNITY_4_6_0
--define:UNITY_4_6
+-r:"C:/Program Files (x86)/Unity WiiU/Editor/Data/Managed/UnityEngine.dll"
+-r:"C:/Program Files (x86)/Unity WiiU/Editor/Data/Managed/UnityEditor.dll"
 -define:UNITY_WEBPLAYER
 -define:WEBPLUG
 -define:ENABLE_MICROPHONE
 -define:ENABLE_TEXTUREID_MAP
--define:ENABLE_UNITYEVENTS
--define:ENABLE_NEW_HIERARCHY 
 -define:ENABLE_AUDIO_FMOD
 -define:ENABLE_MONO
+-define:ENABLE_SPRITES
+-define:INCLUDE_WIIUSUPPORT
 -define:ENABLE_TERRAIN
--define:ENABLE_SUBSTANCE
 -define:ENABLE_GENERICS
+-define:ENABLE_SUBSTANCE
 -define:INCLUDE_WP8SUPPORT
 -define:ENABLE_MOVIES
 -define:ENABLE_WWW
 -define:ENABLE_IMAGEEFFECTS
--define:ENABLE_4_6_FEATURES
--define:INCLUDE_WP_BLUE_SUPPORT
 -define:ENABLE_WEBCAM
 -define:INCLUDE_METROSUPPORT
 -define:RENDER_SOFTWARE_CURSOR
@@ -37,11 +32,12 @@
 -define:ENABLE_NAVMESH_CARVING
 -define:ENABLE_DUCK_TYPING
 -define:ENABLE_SINGLE_INSTANCE_BUILD_SETTING
+-define:UNITY_4_3_7
+-define:UNITY_4_3
 -define:ENABLE_PROFILER
 -define:UNITY_EDITOR
 -define:UNITY_EDITOR_WIN
 -define:UNITY_TEAM_LICENSE
--define:UNITY_PRO_LICENSE
 Assets/Newgrounds/Code/API.cs
 Assets/Newgrounds/Code/APIEvent.cs
 Assets/Newgrounds/Code/BaseN.cs
@@ -51,4 +47,6 @@ Assets/Newgrounds/Code/MD5Hash.cs
 Assets/Newgrounds/Code/Main.cs
 Assets/Newgrounds/Code/Medal.cs
 Assets/Newgrounds/Code/RC4.cs
+Assets/Newgrounds/Code/SaveFile.cs
+Assets/Newgrounds/Code/Scoreboard.cs
 Assets/Newgrounds/Code/SendString.cs

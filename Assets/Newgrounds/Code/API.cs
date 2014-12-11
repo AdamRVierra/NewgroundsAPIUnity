@@ -4,14 +4,15 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Text;
 using System.Net;
+using Newgrounds;
 #endregion
 
 //Code written by Adam R. Vierra
 //adam@adamvierra.com
 //http://coolboyman.newgrounds.com/
 
-namespace Newgrounds
-{
+//namespace Newgrounds
+//{
 	public class API : MonoBehaviour 
 	{	
 		#region Constant Fields
@@ -19,7 +20,7 @@ namespace Newgrounds
 		private const string m_testVars = "http://uploads.ungrounded.net/tmp/797000/797004/file/alternate/alternate_4.unity3d?35013&NewgroundsAPI_PublisherID=1&NewgroundsAPI_SandboxID=542b703459ca8&NewgroundsAPI_SessionID=SN5TILXOORGpB3asN0WHab965c0282e88d40b36fde4daff8cfb9c6f086f7IocC&NewgroundsAPI_UserName=Coolboyman&NewgroundsAPI_UserID=3617592&ng_username=Coolboyman";
 		private const int m_seedSize = 20;
 		#endregion
-
+		 
 		#region Private Fields
 		private enum ErrorCodes
 		{
@@ -57,7 +58,7 @@ namespace Newgrounds
 		private string m_encryptionKey;
 		[SerializeField]
 		private string m_backupSessionID; //This is for local testing. Load your game on Newgrounds and get the sessionID which is placed in the game's url (NewgroundsAPI_SessionID).
-		private Dictionary<string, string> m_headers;
+		private Hashtable m_headers;
 		private int m_publisherID;
 		private string m_sandboxID;
 		private string m_sessionID;
@@ -73,7 +74,9 @@ namespace Newgrounds
 		public static string m_output = "";
 		public bool m_connecting = false;
 		public string m_gameName = "";
-		public Dictionary<string, Medal> m_medals;
+		private Dictionary<string, Medal> m_medals;
+		private Dictionary<string, Scoreboard> m_scoreboards;
+		private Dictionary<string, SaveFile> m_saveFiles;
 		#endregion
 
 		#region Constructors
@@ -84,7 +87,7 @@ namespace Newgrounds
 				Destroy (gameObject);
 			}
 			m_commands = new Queue<JSONCollection>();
-			m_headers = new Dictionary<string, string>();
+			m_headers = new Hashtable();
 			m_headers.Add("Content-Type", "application/x-www-form-urlencoded");
 			m_headers.Add("Accept","*/*");
 			
@@ -284,8 +287,232 @@ namespace Newgrounds
 						med.Unlock ();
 						APIEvent.Activate(APIEvent.EventNames.MEDAL_UNLOCKED, med);
 					break;
+					case "preloadSettings":
+						m_scoreboards = new Dictionary<string, Scoreboard>();
+						List<JSONCollection> scores = data.GetArray ("score_boards");
+						
+						for (i = 0; i < scores.Count; i++)
+						{
+							m_scoreboards.Add (scores[i].Find ("name"), new Scoreboard(scores[i]));
+						}
+						
+						m_saveFiles = new Dictionary<string, SaveFile>();
+						List<JSONCollection> saveFiles = data.GetArray ("save_groups");
+						
+						for (i = 0; i < saveFiles.Count; i++)
+						{
+							m_saveFiles[saveFiles[i].Find ("group_name")] = new Newgrounds.SaveFile(saveFiles[i]);
+						}   
+						APIEvent.Activate(APIEvent.EventNames.METADATA_LOADED, null);
+					break;
+					case "loadScores":
+						JSONCollection scoreHolder = new JSONCollection(contents);
+						List<JSONCollection> scoreHolders = scoreHolder.GetArray("scores");
+						
+						m_output += "High Scores:\n";
+						for (i = 0; i < scoreHolders.Count; i++)
+						{
+							m_output += "Name: " + scoreHolders[i].Find ("username") + ", Score: " + scoreHolders[i].Find ("value") + '\n';
+						}
+						
+						APIEvent.Activate(APIEvent.EventNames.SCORES_LOADED, scoreHolder);
+					break;
+					case "saveFile":
+						m_output += contents;	
+					break;
+					case "postScore":
+						m_output += m_ngUsername + " posted a score of " + data.FindInt("value").ToString() + "!\n";
+						List<object> postScoreInfo = new List<object>();
+						
+						foreach (Scoreboard sb in m_scoreboards.Values)
+						{
+							if (sb.m_id == data.FindInt("board"))
+							{
+								postScoreInfo.Add (sb);
+								break;
+							} 
+						}
+						postScoreInfo.Add (m_userName);
+						postScoreInfo.Add (data.FindInt("value"));
+						APIEvent.Activate(APIEvent.EventNames.SCORE_POSTED, postScoreInfo);
+					break;
+					default:
+						m_output += contents;
+					break;
 				}
 			}
+		}
+
+		public SaveFile GetSaveGroup(string groupName)
+		{
+			if (m_saveFiles.ContainsKey(groupName))
+			{
+				return m_saveFiles[groupName];
+			}
+			Debug.Log ("No Save group called " + groupName + " exists!");
+			return null;
+		}
+
+		public IEnumerator LoadScores(string boardName, string period = "all-time", string tag = "", int page = 1, int numResults = 10, int firstResult = 1, int friendsID = -1)
+		{
+			Scoreboard scoreboard = m_scoreboards[boardName];
+			SendString sendData = new SendString("loadScores");
+			sendData.AddCommand ("tracker_id", m_apiID);
+			sendData.AddCommand ("publisher_id", m_publisherID);
+			sendData.AddCommand ("board", scoreboard.m_id);
+			sendData.AddCommand ("period", period);
+			sendData.AddCommand ("num_results", numResults);
+			sendData.AddCommand ("page", page);
+			sendData.AddCommand ("first_result", firstResult);
+			sendData.AddCommand ("tag", tag);
+			if (friendsID > -1)
+			{
+				sendData.AddCommand ("friends_of", friendsID);
+			}
+			yield return StartCoroutine(RequestTest(sendData));
+		}
+		
+		public IEnumerator SaveFile(string groupName, string data, string fileName, string description = "", string thumbnail = "")
+		{
+			SaveFile saveFile = m_saveFiles[groupName];
+			
+			string seed = RandomString(20);
+			JSONCollection collection = new JSONCollection();
+			collection.Add("command_id", "saveFile");
+			collection.Add("publisher_id", m_publisherID);
+			collection.Add("session_id", m_sessionID);
+			collection.Add("group", saveFile.m_groupID);
+			collection.Add("filename", fileName);
+			
+			collection.Add("description", description);
+			collection.Add("status", 1);
+			
+			collection.Add("file", data);
+			collection.Add("thumbnail", "data:image/png;base64,{BASE64_ENCODED_PNG_IMAGE}");
+			collection.Add("seed", seed);
+			
+			yield return StartCoroutine(PostData(Encrypt(collection.JSONString(), seed), seed));
+		}
+		
+		public IEnumerator CheckFilePrivs(string group, string fileName)
+		{ 
+			SendString sendData = new SendString("checkFilePrivs");
+			sendData.AddCommand ("tracker_id", WWW.EscapeURL(m_apiID));
+			sendData.AddCommand ("publisher_id",  m_publisherID.ToString());
+			sendData.AddCommand ("user_id",  m_userID.ToString ());
+			sendData.AddCommand ("group", group);
+			sendData.AddCommand ("filename", fileName);
+			yield return StartCoroutine(RequestTest(sendData));
+		}
+		
+		public IEnumerator DeleteSaveFile(string group)
+		{
+			string seed = RandomString(20);
+			
+			JSONCollection deleteFile = new JSONCollection();
+			deleteFile.Add ("command_id", "deleteSaveFile");
+			deleteFile.Add ("tracker_id", m_publisherID);
+			deleteFile.Add ("session_id", m_sessionID);
+			
+			
+			if (m_saveFiles.ContainsKey(group))
+			{
+				deleteFile.Add ("save_id", m_saveFiles[group].m_groupID);
+			}
+			else
+			{
+				Debug.Log ("Save file " + group + " doesn't exist.");
+				yield break;
+			}
+			
+			deleteFile.Add ("seed", seed);
+			yield return StartCoroutine(PostData(Encrypt (deleteFile, seed), seed));
+		}
+		
+		public IEnumerator LoadCustomLink(string eName)
+		{
+			SendString sendData = new SendString("loadCustomLink");
+			sendData.AddCommand ("tracker_id", WWW.EscapeURL(m_apiID));
+			sendData.AddCommand ("host", m_currentHost);
+			sendData.AddCommand ("event", eName);
+			yield return StartCoroutine(RequestTest(sendData));
+		}
+		
+		public IEnumerator LoadFriendList()
+		{
+			SendString sendData = new SendString("loadFriendList");
+			sendData.AddCommand ("tracker_id", WWW.EscapeURL(m_apiID));
+			sendData.AddCommand ("publisher_id", m_publisherID);
+			sendData.AddCommand ("user_id", m_userID);
+			yield return StartCoroutine(RequestTest(sendData));
+		}
+		
+		public IEnumerator LoadMySite()
+		{
+			SendString sendData = new SendString("loadMySite");
+			sendData.AddCommand ("tracker_id", WWW.EscapeURL(m_apiID));
+			sendData.AddCommand ("host", m_currentHost);
+			yield return StartCoroutine(RequestTest(sendData));
+		}
+		
+		public IEnumerator LoadNewgrounds()
+		{
+			SendString sendData = new SendString("loadNewgrounds");
+			sendData.AddCommand ("tracker_id", WWW.EscapeURL(m_apiID));
+			sendData.AddCommand ("host", m_currentHost);
+			yield return StartCoroutine(RequestTest(sendData));
+		}
+		
+		public IEnumerator LoadOfficialVersion()
+		{
+			SendString sendData = new SendString("loadOfficialVersion");
+			sendData.AddCommand ("tracker_id", WWW.EscapeURL(m_apiID));
+			sendData.AddCommand ("host", m_currentHost);
+			yield return StartCoroutine(RequestTest(sendData));
+		}
+		
+		public IEnumerator LogCustomEvent(string eventName)
+		{
+			SendString sendData = new SendString("logCustomEvent");
+			sendData.AddCommand ("tracker_id", WWW.EscapeURL(m_apiID));
+			sendData.AddCommand ("host", m_currentHost);
+			sendData.AddCommand ("event", eventName);
+			yield return StartCoroutine(RequestTest(sendData));
+		}
+		
+		public IEnumerator LookUpSaveFiles(string groupName)
+		{
+			SendString sendData = new SendString("lookupSaveFiles");
+			sendData.AddCommand ("tracker_id", WWW.EscapeURL(m_apiID));
+			sendData.AddCommand ("publisher_id", m_publisherID);
+			sendData.AddCommand ("group_id", m_saveFiles[groupName].m_groupID);
+			sendData.AddCommand ("query", null);
+			yield return StartCoroutine(RequestTest(sendData));
+		}
+		
+		public IEnumerator RateSaveFile(string groupName, float rating = 5)
+		{
+			string seed = RandomString(20);
+			
+			JSONCollection rateFile = new JSONCollection();
+			rateFile.Add ("command_id", "rateSaveFile");
+			rateFile.Add ("publisher_id", m_publisherID);
+			rateFile.Add ("session_id", m_sessionID);
+			rateFile.Add ("group", m_saveFiles[groupName].m_groupID);
+			rateFile.Add ("save_id", m_saveFiles[groupName].m_keys[0].m_id);
+			rateFile.Add ("rating_id", m_saveFiles[groupName].m_ratings[0].m_id);
+			rateFile.Add ("seed", seed);
+			yield return StartCoroutine(PostData(Encrypt (rateFile, seed), seed));
+			
+		}
+
+		public IEnumerator GetScoreboards()
+		{
+			SendString sendData = new SendString("preloadSettings");
+			sendData.AddCommand("tracker_id", WWW.EscapeURL(m_apiID));
+			sendData.AddCommand("publisher_id", m_publisherID.ToString());
+			sendData.AddCommand("user_id", m_userID.ToString());
+			yield return StartCoroutine(RequestTest(sendData));
 		}
 
 		public Medal GetMedal(string medalName) //Get single medal from game group
@@ -296,6 +523,45 @@ namespace Newgrounds
 			}
 			Debug.LogError ("No medal called " + medalName + " is registered in the database!");
 			return null;
+		}
+
+		public IEnumerator PostScore(string scoreboardName, int amount)
+		{
+			string seed = RandomString(20);
+			
+			if (m_scoreboards == null)
+			{
+				m_output = "Connect to NG first!";
+				yield break;
+			}
+			
+			Scoreboard scoreBoard = null;
+			try
+			{
+				scoreBoard = m_scoreboards[scoreboardName];
+			}
+			catch
+			{
+				m_output += "Scoreboard " + scoreboardName + " doesn't exist.";
+				yield break;
+			}
+			
+			if (m_userName == "Logged-out")
+			{
+				m_output += "You need to log in before you can post a score!";
+				yield break;
+			}
+			
+			JSONCollection postScore = new JSONCollection();
+			postScore.Add ("command_id", "postScore");
+			postScore.Add ("publisher_id", 1);
+			postScore.Add ("session_id", m_sessionID);
+			postScore.Add ("board", scoreBoard.m_id);
+			postScore.Add ("value", amount);
+			postScore.Add ("tag", "");
+			postScore.Add ("seed", seed);
+			
+			yield return StartCoroutine(PostData(Encrypt(postScore.JSONString(), seed), seed));
 		}
 
 		public IEnumerator GetMedals() //Get all medals from game group
@@ -329,6 +595,11 @@ namespace Newgrounds
 			m_connecting = false;
 		}
 
+		public void GetScoreBoard(string boardName)
+		{
+			StartCoroutine(LoadScores (boardName));
+		}
+
 		public IEnumerator UnlockMedal(string medalName)
 		{
 			Medal medal;
@@ -360,4 +631,4 @@ namespace Newgrounds
 		#endregion
 
 	}
-}
+//}
