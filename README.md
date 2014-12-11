@@ -19,6 +19,7 @@ How to unlock a medal:
 - Once you're connected, start a Coroutine to API's GetMedals function. This will load the medals locally for quicker use in case you need more information about them in the future.
 
 - When you're ready to unlock a medal, start a Coroutine to API's UnlockMedal function. It takes one argument, your Medal's name. The console will let you know whether the unlock was successful or not. (Bad medal name, expired session ID, misc errors). The pop up signifying that you unlocked a medal isn't done yet.
+
 Setting up events:
 
 - This is used to call events once the API receives a specific command from the server. It's similar to eventListeners in flash.
