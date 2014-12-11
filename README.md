@@ -1,7 +1,6 @@
 Newgrounds API Support for Unity
 Written by Adam R. Vierra
 adam@adamvierra.com
-coolboyman.newgrounds.com
 
 Instructions:
 - Drag the API GameObject onto your start scene. Make sure it has the tag "NewgroundsAPI". It'll be transferred over to other scenes and won't duplicate itself.
