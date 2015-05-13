@@ -125,57 +125,73 @@ using Newgrounds;
 		#endregion
 
 		#region Private Functions
-		private string GetNGVar(string input, string search)
+		/// <summary>
+		/// Parses the URL variables.
+		/// </summary>
+		/// <returns>The URL variables.</returns>
+		/// <param name="data">The string to be parsed</param>
+		/// <exception cref="ArgumentException">Thrown when 'data' is not a valid 'application/x-www-form-urlencoded' string.</exception>
+		private Dictionary<string, string> ParseURLVars (string url)
 		{
-			int strLeng = search.Length;
-			int start = input.IndexOf (search) + strLeng + 1;
+			Dictionary<string, string> values = new Dictionary<string, string> ();
 			
-			StringBuilder output = new StringBuilder();
-			
-			while (start < input.Length&&input[start] != '&')
+			int indexOfQuestionMark = url.IndexOf ('?');
+			if (indexOfQuestionMark > -1)
 			{
-				output.Append(input[start]);
-				start++;
+				string[] fields = url.Substring (indexOfQuestionMark + 1).Split ('&');
+				
+				foreach (var field in fields)
+				{
+					string[] kv = field.Split ('=');
+					int kvlen = kv.Length;
+					
+					if (kvlen == 0 || kvlen > 2)
+					{
+						throw new System.ArgumentException ("The given string is not in the valid format.", "data");
+					}
+					
+					values [WWW.UnEscapeURL (kv [0])] = (kvlen == 2) ? WWW.UnEscapeURL (kv [1]) : null;
+				}
 			}
-
-			return output.ToString();
+			
+			return values;
 		}
 
 		private void NGVars(string input)
 		{
-			m_output += input + '\n';
-			m_publisherID = System.Convert.ToInt32 (GetNGVar (input, "NewgroundsAPI_PublisherID"));
-			m_output += "Publisher ID is " + m_publisherID.ToString() + '\n';
-			m_sandboxID = GetNGVar (input, "NewgroundsAPI_SandboxID");
-			m_output += "Sandbox ID is " + m_sandboxID + '\n';
-			m_userName = GetNGVar (input, "NewgroundsAPI_UserName");
+			Dictionary<string, string> vars = ParseURLVars (input);
 
-			if (m_userName == "%26lt%3Bdeleted%26gt%3B")
+			m_publisherID = System.Convert.ToInt32 (vars["NewgroundsAPI_PublisherID"]);
+			m_sandboxID = vars["NewgroundsAPI_SandboxID"];
+			m_userName = vars["NewgroundsAPI_UserName"];
+			
+			if (m_userName == "&lt;deleted7gt;")
 			{
 				m_userName = "Logged-out";
 			}
-			m_output += "Username is " + m_userName + '\n';
-
+			
 			if (m_userName != "Logged-out")
 			{
-				if (input == m_testVars)
-				{
-					m_sessionID = m_backupSessionID;
-				}
-				else
-				{
-					m_sessionID = GetNGVar (input, "NewgroundsAPI_SessionID");
-				}
-				m_output += "Session ID is " + m_sessionID + '\n';
+				m_sessionID = (input == m_testVars)? m_backupSessionID : vars["NewgroundsAPI_SessionID"];
 			}
-			m_userID = System.Convert.ToInt32(GetNGVar (input, "NewgroundsAPI_UserID"));
-			m_output += "User ID is " + m_userID.ToString() + '\n';
-			m_ngUsername = GetNGVar(input, "ng_username");
+			m_userID = System.Convert.ToInt32(vars["NewgroundsAPI_UserID"]);
+			m_ngUsername = vars["ng_username"];
 			if (m_userName == "Logged-out")
 			{	
 				m_ngUsername = m_userName;
 			}
+
+      // output useful data
+			m_output += input + '\n';
+			m_output += "Publisher ID is " + m_publisherID.ToString() + '\n';
+			m_output += "Sandbox ID is " + m_sandboxID + '\n';
+			m_output += "Username is " + m_userName + '\n';
 			m_output += "NG Username is " + m_ngUsername + '\n';
+			m_output += "User ID is " + m_userID.ToString() + '\n';
+			if (!string.IsNullOrEmpty (m_sessionID))
+			{
+				m_output += "Session ID is " + m_sessionID + '\n';
+			}
 		}
 
 		private string Encrypt(JSONCollection data, string seed)
