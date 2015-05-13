@@ -58,7 +58,7 @@ using Newgrounds;
 		private string m_encryptionKey;
 		[SerializeField]
 		private string m_backupSessionID; //This is for local testing. Load your game on Newgrounds and get the sessionID which is placed in the game's url (NewgroundsAPI_SessionID).
-		private Hashtable m_headers;
+		private Dictionary<string, string> m_headers;
 		private int m_publisherID;
 		private string m_sandboxID;
 		private string m_sessionID;
@@ -87,7 +87,7 @@ using Newgrounds;
 				Destroy (gameObject);
 			}
 			m_commands = new Queue<JSONCollection>();
-			m_headers = new Hashtable();
+			m_headers = new Dictionary<string, string>();
 			m_headers.Add("Content-Type", "application/x-www-form-urlencoded");
 			m_headers.Add("Accept","*/*");
 			
