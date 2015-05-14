@@ -58,7 +58,7 @@ using Newgrounds;
 		private string m_encryptionKey;
 		[SerializeField]
 		private string m_backupSessionID; //This is for local testing. Load your game on Newgrounds and get the sessionID which is placed in the game's url (NewgroundsAPI_SessionID).
-		private Hashtable m_headers;
+		private Dictionary<string, string> m_headers;
 		private int m_publisherID;
 		private string m_sandboxID;
 		private string m_sessionID;
@@ -87,7 +87,7 @@ using Newgrounds;
 				Destroy (gameObject);
 			}
 			m_commands = new Queue<JSONCollection>();
-			m_headers = new Hashtable();
+			m_headers = new Dictionary<string, string>();
 			m_headers.Add("Content-Type", "application/x-www-form-urlencoded");
 			m_headers.Add("Accept","*/*");
 			
@@ -125,57 +125,73 @@ using Newgrounds;
 		#endregion
 
 		#region Private Functions
-		private string GetNGVar(string input, string search)
+		/// <summary>
+		/// Parses the URL variables.
+		/// </summary>
+		/// <returns>The URL variables.</returns>
+		/// <param name="data">The string to be parsed</param>
+		/// <exception cref="ArgumentException">Thrown when 'data' is not a valid 'application/x-www-form-urlencoded' string.</exception>
+		private Dictionary<string, string> ParseURLVars (string url)
 		{
-			int strLeng = search.Length;
-			int start = input.IndexOf (search) + strLeng + 1;
+			Dictionary<string, string> values = new Dictionary<string, string> ();
 			
-			StringBuilder output = new StringBuilder();
-			
-			while (start < input.Length&&input[start] != '&')
+			int indexOfQuestionMark = url.IndexOf ('?');
+			if (indexOfQuestionMark > -1)
 			{
-				output.Append(input[start]);
-				start++;
+				string[] fields = url.Substring (indexOfQuestionMark + 1).Split ('&');
+				
+				foreach (var field in fields)
+				{
+					string[] kv = field.Split ('=');
+					int kvlen = kv.Length;
+					
+					if (kvlen == 0 || kvlen > 2)
+					{
+						throw new System.ArgumentException ("The given string is not in the valid format.", "data");
+					}
+					
+					values [WWW.UnEscapeURL (kv [0])] = (kvlen == 2) ? WWW.UnEscapeURL (kv [1]) : null;
+				}
 			}
-
-			return output.ToString();
+			
+			return values;
 		}
 
 		private void NGVars(string input)
 		{
-			m_output += input + '\n';
-			m_publisherID = System.Convert.ToInt32 (GetNGVar (input, "NewgroundsAPI_PublisherID"));
-			m_output += "Publisher ID is " + m_publisherID.ToString() + '\n';
-			m_sandboxID = GetNGVar (input, "NewgroundsAPI_SandboxID");
-			m_output += "Sandbox ID is " + m_sandboxID + '\n';
-			m_userName = GetNGVar (input, "NewgroundsAPI_UserName");
+			Dictionary<string, string> vars = ParseURLVars (input);
 
-			if (m_userName == "%26lt%3Bdeleted%26gt%3B")
+			m_publisherID = System.Convert.ToInt32 (vars["NewgroundsAPI_PublisherID"]);
+			m_sandboxID = vars["NewgroundsAPI_SandboxID"];
+			m_userName = vars["NewgroundsAPI_UserName"];
+			
+			if (m_userName == "&lt;deleted7gt;")
 			{
 				m_userName = "Logged-out";
 			}
-			m_output += "Username is " + m_userName + '\n';
-
+			
 			if (m_userName != "Logged-out")
 			{
-				if (input == m_testVars)
-				{
-					m_sessionID = m_backupSessionID;
-				}
-				else
-				{
-					m_sessionID = GetNGVar (input, "NewgroundsAPI_SessionID");
-				}
-				m_output += "Session ID is " + m_sessionID + '\n';
+				m_sessionID = (input == m_testVars)? m_backupSessionID : vars["NewgroundsAPI_SessionID"];
 			}
-			m_userID = System.Convert.ToInt32(GetNGVar (input, "NewgroundsAPI_UserID"));
-			m_output += "User ID is " + m_userID.ToString() + '\n';
-			m_ngUsername = GetNGVar(input, "ng_username");
+			m_userID = System.Convert.ToInt32(vars["NewgroundsAPI_UserID"]);
+			m_ngUsername = vars["ng_username"];
 			if (m_userName == "Logged-out")
 			{	
 				m_ngUsername = m_userName;
 			}
+
+      // output useful data
+			m_output += input + '\n';
+			m_output += "Publisher ID is " + m_publisherID.ToString() + '\n';
+			m_output += "Sandbox ID is " + m_sandboxID + '\n';
+			m_output += "Username is " + m_userName + '\n';
 			m_output += "NG Username is " + m_ngUsername + '\n';
+			m_output += "User ID is " + m_userID.ToString() + '\n';
+			if (!string.IsNullOrEmpty (m_sessionID))
+			{
+				m_output += "Session ID is " + m_sessionID + '\n';
+			}
 		}
 
 		private string Encrypt(JSONCollection data, string seed)
@@ -197,9 +213,9 @@ using Newgrounds;
 		private IEnumerator PostData(string final, string seed)	
 		{
 			SendString sendData = new SendString("securePacket");
-			sendData.AddCommand("tracker_id", WWW.EscapeURL(m_apiID));
-			sendData.AddCommand("seed", WWW.EscapeURL(seed));
-			sendData.AddCommand("secure", WWW.EscapeURL(final));
+			sendData.AddCommand("tracker_id", m_apiID);
+			sendData.AddCommand("seed", seed);
+			sendData.AddCommand("secure", final);
 			yield return StartCoroutine(RequestTest(sendData));
 		}
 		
@@ -259,7 +275,7 @@ using Newgrounds;
 						m_output += "\nConnect to NG received data: " +  data.JSONString() + '\n';
 						m_gameName = data.Find("movie_name");
 						
-						APIEvent.Activate(APIEvent.EventNames.API_CONNECTED, m_medals);
+						APIEvent.Activate(APIEvent.EventNames.API_CONNECTED, null);
 					break;
 					case "getMedals": 
 						m_medals = new Dictionary<string, Medal>();
@@ -397,7 +413,7 @@ using Newgrounds;
 		public IEnumerator CheckFilePrivs(string group, string fileName)
 		{ 
 			SendString sendData = new SendString("checkFilePrivs");
-			sendData.AddCommand ("tracker_id", WWW.EscapeURL(m_apiID));
+			sendData.AddCommand ("tracker_id", m_apiID);
 			sendData.AddCommand ("publisher_id",  m_publisherID.ToString());
 			sendData.AddCommand ("user_id",  m_userID.ToString ());
 			sendData.AddCommand ("group", group);
@@ -432,7 +448,7 @@ using Newgrounds;
 		public IEnumerator LoadCustomLink(string eName)
 		{
 			SendString sendData = new SendString("loadCustomLink");
-			sendData.AddCommand ("tracker_id", WWW.EscapeURL(m_apiID));
+			sendData.AddCommand ("tracker_id", m_apiID);
 			sendData.AddCommand ("host", m_currentHost);
 			sendData.AddCommand ("event", eName);
 			yield return StartCoroutine(RequestTest(sendData));
@@ -441,7 +457,7 @@ using Newgrounds;
 		public IEnumerator LoadFriendList()
 		{
 			SendString sendData = new SendString("loadFriendList");
-			sendData.AddCommand ("tracker_id", WWW.EscapeURL(m_apiID));
+			sendData.AddCommand ("tracker_id", m_apiID);
 			sendData.AddCommand ("publisher_id", m_publisherID);
 			sendData.AddCommand ("user_id", m_userID);
 			yield return StartCoroutine(RequestTest(sendData));
@@ -450,7 +466,7 @@ using Newgrounds;
 		public IEnumerator LoadMySite()
 		{
 			SendString sendData = new SendString("loadMySite");
-			sendData.AddCommand ("tracker_id", WWW.EscapeURL(m_apiID));
+			sendData.AddCommand ("tracker_id", m_apiID);
 			sendData.AddCommand ("host", m_currentHost);
 			yield return StartCoroutine(RequestTest(sendData));
 		}
@@ -458,7 +474,7 @@ using Newgrounds;
 		public IEnumerator LoadNewgrounds()
 		{
 			SendString sendData = new SendString("loadNewgrounds");
-			sendData.AddCommand ("tracker_id", WWW.EscapeURL(m_apiID));
+			sendData.AddCommand ("tracker_id", m_apiID);
 			sendData.AddCommand ("host", m_currentHost);
 			yield return StartCoroutine(RequestTest(sendData));
 		}
@@ -466,7 +482,7 @@ using Newgrounds;
 		public IEnumerator LoadOfficialVersion()
 		{
 			SendString sendData = new SendString("loadOfficialVersion");
-			sendData.AddCommand ("tracker_id", WWW.EscapeURL(m_apiID));
+			sendData.AddCommand ("tracker_id", m_apiID);
 			sendData.AddCommand ("host", m_currentHost);
 			yield return StartCoroutine(RequestTest(sendData));
 		}
@@ -474,7 +490,7 @@ using Newgrounds;
 		public IEnumerator LogCustomEvent(string eventName)
 		{
 			SendString sendData = new SendString("logCustomEvent");
-			sendData.AddCommand ("tracker_id", WWW.EscapeURL(m_apiID));
+			sendData.AddCommand ("tracker_id", m_apiID);
 			sendData.AddCommand ("host", m_currentHost);
 			sendData.AddCommand ("event", eventName);
 			yield return StartCoroutine(RequestTest(sendData));
@@ -483,7 +499,7 @@ using Newgrounds;
 		public IEnumerator LookUpSaveFiles(string groupName)
 		{
 			SendString sendData = new SendString("lookupSaveFiles");
-			sendData.AddCommand ("tracker_id", WWW.EscapeURL(m_apiID));
+			sendData.AddCommand ("tracker_id", m_apiID);
 			sendData.AddCommand ("publisher_id", m_publisherID);
 			sendData.AddCommand ("group_id", m_saveFiles[groupName].m_groupID);
 			sendData.AddCommand ("query", null);
@@ -506,10 +522,16 @@ using Newgrounds;
 			
 		}
 
+		[Obsolete("For the same functionality as before, use 'PreloadSettings'. To load a specific scoreboard, use 'GetScoreboard'.")]
 		public IEnumerator GetScoreboards()
 		{
+			return PreloadSettings();
+		}
+
+		public IEnumerator PreloadSettings()
+		{
 			SendString sendData = new SendString("preloadSettings");
-			sendData.AddCommand("tracker_id", WWW.EscapeURL(m_apiID));
+			sendData.AddCommand("tracker_id", m_apiID);
 			sendData.AddCommand("publisher_id", m_publisherID.ToString());
 			sendData.AddCommand("user_id", m_userID.ToString());
 			yield return StartCoroutine(RequestTest(sendData));
@@ -567,7 +589,7 @@ using Newgrounds;
 		public IEnumerator GetMedals() //Get all medals from game group
 		{
 			SendString sendData = new SendString("getMedals");
-			sendData.AddCommand("tracker_id", WWW.EscapeURL(m_apiID));
+			sendData.AddCommand("tracker_id", m_apiID);
 			sendData.AddCommand("publisher_id", m_publisherID.ToString());
 			sendData.AddCommand("user_id", m_userID.ToString());
 			yield return StartCoroutine(RequestTest(sendData));
@@ -576,7 +598,7 @@ using Newgrounds;
 		public IEnumerator Connect()
 		{
 			SendString sendData = new SendString("connectMovie");
-			sendData.AddCommand("tracker_id", WWW.EscapeURL(m_apiID));
+			sendData.AddCommand("tracker_id", m_apiID);
 			sendData.AddCommand("publisher_id", m_publisherID.ToString());
 			sendData.AddCommand("user_id", m_userID.ToString());
 			sendData.AddCommand("host", m_currentHost);

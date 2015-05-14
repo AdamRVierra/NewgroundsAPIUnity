@@ -1,6 +1,7 @@
 ﻿#region References
 using System.Collections;
 using System.Text;
+using UnityEngine;
 #endregion
 
 namespace Newgrounds
@@ -9,7 +10,7 @@ namespace Newgrounds
 	public class SendString
 	{
 		#region Public Fields
-		public string m_contents = "";
+		public StringBuilder m_contents;
 		#endregion
 
 		#region Constructor
@@ -22,16 +23,19 @@ namespace Newgrounds
 		#region Public Functions
 		public SendString(string commandName)
 		{
+			m_contents = new StringBuilder();
 			AddCommand ("command_id", commandName);
 		}
 		 
 		public void AddCommand(string command, string argument)
 		{
-			if (m_contents != "")
+			if (m_contents.Length != 0)
 			{
-				m_contents += "&";
+				m_contents.Append ('&');
 			}
-			m_contents += command + "=" + argument;
+			m_contents.Append (WWW.EscapeURL(command));
+			m_contents.Append ('=');
+			m_contents.Append (WWW.EscapeURL(argument));
 		}
 
 		public void AddCommand(string command, int argument)
@@ -41,8 +45,9 @@ namespace Newgrounds
 
 		public byte[] ByteArray()
 		{
-			API.m_output += "Sending data to server: " + m_contents + '\n';
-			return Encoding.UTF8.GetBytes(m_contents.ToCharArray ());
+			string contentsStr = m_contents.ToString();
+			API.m_output += "Sending data to server: " + contentsStr + '\n';
+			return Encoding.UTF8.GetBytes(contentsStr.ToCharArray ());
 		}
 		#endregion
 	}
