@@ -275,7 +275,7 @@ using Newgrounds;
 						m_output += "\nConnect to NG received data: " +  data.JSONString() + '\n';
 						m_gameName = data.Find("movie_name");
 						
-						APIEvent.Activate(APIEvent.EventNames.API_CONNECTED, m_medals);
+						APIEvent.Activate(APIEvent.EventNames.API_CONNECTED, null);
 					break;
 					case "getMedals": 
 						m_medals = new Dictionary<string, Medal>();
