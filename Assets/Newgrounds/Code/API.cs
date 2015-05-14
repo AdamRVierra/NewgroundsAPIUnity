@@ -522,7 +522,13 @@ using Newgrounds;
 			
 		}
 
+		[Obsolete("For the same functionality as before, use 'PreloadSettings'. To load a specific scoreboard, use 'GetScoreboard'.")]
 		public IEnumerator GetScoreboards()
+		{
+			return PreloadSettings();
+		}
+
+		public IEnumerator PreloadSettings()
 		{
 			SendString sendData = new SendString("preloadSettings");
 			sendData.AddCommand("tracker_id", m_apiID);
