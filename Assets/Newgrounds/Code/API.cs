@@ -213,9 +213,9 @@ using Newgrounds;
 		private IEnumerator PostData(string final, string seed)	
 		{
 			SendString sendData = new SendString("securePacket");
-			sendData.AddCommand("tracker_id", WWW.EscapeURL(m_apiID));
-			sendData.AddCommand("seed", WWW.EscapeURL(seed));
-			sendData.AddCommand("secure", WWW.EscapeURL(final));
+			sendData.AddCommand("tracker_id", m_apiID);
+			sendData.AddCommand("seed", seed);
+			sendData.AddCommand("secure", final);
 			yield return StartCoroutine(RequestTest(sendData));
 		}
 		
@@ -413,7 +413,7 @@ using Newgrounds;
 		public IEnumerator CheckFilePrivs(string group, string fileName)
 		{ 
 			SendString sendData = new SendString("checkFilePrivs");
-			sendData.AddCommand ("tracker_id", WWW.EscapeURL(m_apiID));
+			sendData.AddCommand ("tracker_id", m_apiID);
 			sendData.AddCommand ("publisher_id",  m_publisherID.ToString());
 			sendData.AddCommand ("user_id",  m_userID.ToString ());
 			sendData.AddCommand ("group", group);
@@ -448,7 +448,7 @@ using Newgrounds;
 		public IEnumerator LoadCustomLink(string eName)
 		{
 			SendString sendData = new SendString("loadCustomLink");
-			sendData.AddCommand ("tracker_id", WWW.EscapeURL(m_apiID));
+			sendData.AddCommand ("tracker_id", m_apiID);
 			sendData.AddCommand ("host", m_currentHost);
 			sendData.AddCommand ("event", eName);
 			yield return StartCoroutine(RequestTest(sendData));
@@ -457,7 +457,7 @@ using Newgrounds;
 		public IEnumerator LoadFriendList()
 		{
 			SendString sendData = new SendString("loadFriendList");
-			sendData.AddCommand ("tracker_id", WWW.EscapeURL(m_apiID));
+			sendData.AddCommand ("tracker_id", m_apiID);
 			sendData.AddCommand ("publisher_id", m_publisherID);
 			sendData.AddCommand ("user_id", m_userID);
 			yield return StartCoroutine(RequestTest(sendData));
@@ -466,7 +466,7 @@ using Newgrounds;
 		public IEnumerator LoadMySite()
 		{
 			SendString sendData = new SendString("loadMySite");
-			sendData.AddCommand ("tracker_id", WWW.EscapeURL(m_apiID));
+			sendData.AddCommand ("tracker_id", m_apiID);
 			sendData.AddCommand ("host", m_currentHost);
 			yield return StartCoroutine(RequestTest(sendData));
 		}
@@ -474,7 +474,7 @@ using Newgrounds;
 		public IEnumerator LoadNewgrounds()
 		{
 			SendString sendData = new SendString("loadNewgrounds");
-			sendData.AddCommand ("tracker_id", WWW.EscapeURL(m_apiID));
+			sendData.AddCommand ("tracker_id", m_apiID);
 			sendData.AddCommand ("host", m_currentHost);
 			yield return StartCoroutine(RequestTest(sendData));
 		}
@@ -482,7 +482,7 @@ using Newgrounds;
 		public IEnumerator LoadOfficialVersion()
 		{
 			SendString sendData = new SendString("loadOfficialVersion");
-			sendData.AddCommand ("tracker_id", WWW.EscapeURL(m_apiID));
+			sendData.AddCommand ("tracker_id", m_apiID);
 			sendData.AddCommand ("host", m_currentHost);
 			yield return StartCoroutine(RequestTest(sendData));
 		}
@@ -490,7 +490,7 @@ using Newgrounds;
 		public IEnumerator LogCustomEvent(string eventName)
 		{
 			SendString sendData = new SendString("logCustomEvent");
-			sendData.AddCommand ("tracker_id", WWW.EscapeURL(m_apiID));
+			sendData.AddCommand ("tracker_id", m_apiID);
 			sendData.AddCommand ("host", m_currentHost);
 			sendData.AddCommand ("event", eventName);
 			yield return StartCoroutine(RequestTest(sendData));
@@ -499,7 +499,7 @@ using Newgrounds;
 		public IEnumerator LookUpSaveFiles(string groupName)
 		{
 			SendString sendData = new SendString("lookupSaveFiles");
-			sendData.AddCommand ("tracker_id", WWW.EscapeURL(m_apiID));
+			sendData.AddCommand ("tracker_id", m_apiID);
 			sendData.AddCommand ("publisher_id", m_publisherID);
 			sendData.AddCommand ("group_id", m_saveFiles[groupName].m_groupID);
 			sendData.AddCommand ("query", null);
@@ -525,7 +525,7 @@ using Newgrounds;
 		public IEnumerator GetScoreboards()
 		{
 			SendString sendData = new SendString("preloadSettings");
-			sendData.AddCommand("tracker_id", WWW.EscapeURL(m_apiID));
+			sendData.AddCommand("tracker_id", m_apiID);
 			sendData.AddCommand("publisher_id", m_publisherID.ToString());
 			sendData.AddCommand("user_id", m_userID.ToString());
 			yield return StartCoroutine(RequestTest(sendData));
@@ -583,7 +583,7 @@ using Newgrounds;
 		public IEnumerator GetMedals() //Get all medals from game group
 		{
 			SendString sendData = new SendString("getMedals");
-			sendData.AddCommand("tracker_id", WWW.EscapeURL(m_apiID));
+			sendData.AddCommand("tracker_id", m_apiID);
 			sendData.AddCommand("publisher_id", m_publisherID.ToString());
 			sendData.AddCommand("user_id", m_userID.ToString());
 			yield return StartCoroutine(RequestTest(sendData));
@@ -592,7 +592,7 @@ using Newgrounds;
 		public IEnumerator Connect()
 		{
 			SendString sendData = new SendString("connectMovie");
-			sendData.AddCommand("tracker_id", WWW.EscapeURL(m_apiID));
+			sendData.AddCommand("tracker_id", m_apiID);
 			sendData.AddCommand("publisher_id", m_publisherID.ToString());
 			sendData.AddCommand("user_id", m_userID.ToString());
 			sendData.AddCommand("host", m_currentHost);
